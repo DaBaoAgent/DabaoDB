@@ -1,0 +1,5 @@
+# WebUI 运行产物（不上 git）
+data/
+node_modules/
+config.json
+*.log

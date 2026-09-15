@@ -1,0 +1,30 @@
+<?svml using="@hypit/markup@1"?>
+<svml>
+  <import as="text" from="@hypit/text@1"/>
+  <import as="asset" from="@hypit/media@1"/>
+  <import as="seedance" from="@hypit/seedance@1"/>
+
+  <asset:Image id="product-45" src="./assets/product-45.jpg"/>
+  <asset:Image id="product-side" src="./assets/product-side.jpg"/>
+  <asset:Image id="product-folded" src="./assets/product-folded.jpg"/>
+  <asset:Image id="product-recline" src="./assets/product-recline.jpg"/>
+  <asset:Image id="product-logo" src="./assets/product-logo.jpg"/>
+
+  <text:Value id="shot1-prompt">真人实拍剧情广告质感，9:16 竖屏，轻喜剧调性。城市公园的步道上（白天，绿树与步道砖），一位 60 岁左右、穿杏色针织衫的老太太双手紧紧拉住车把不肯松手，一位 25-30 岁、穿黑色 Polo 衫的年轻女车主扶着同一台车的车把往回拽，两人隔着车互相拉扯、表情夸张但动作不激烈。
+
+产品是一台深灰色折叠电动轮椅（深灰车架、红色减震弹簧、黑色网布坐垫，外观严格保持参考图中的造型与配色）。车身侧面车架管上必须清晰出现白色商标文字 "Ainsnbot"，其中中间的两个字母 "sn" 为红色；字形端正、拼写准确、不得变形、错字或缺字母；车架转轴处保留圆形的银色 "A" 徽标。
+
+对白（中文普通话，两人一问一答，口语化、有喜剧感）：老太太说："这车我先看上的！"；年轻女车主说："阿姨，这是我刚买的代步车。"
+
+画面要求：画面干净，除车身商标 Ainsnbot 外，不要出现任何字幕、文字、花字、水印、贴纸、UI 元素或其他随机字母与商标。</text:Value>
+
+  <seedance:ReferenceVideo id="final" model="mini" prompt={shot1-prompt}
+    duration="5" resolution="720p" aspect-ratio="9:16"
+    generate-audio="true">
+    <seedance:Reference image={product-45} person-reference="false"/>
+    <seedance:Reference image={product-side} person-reference="false"/>
+    <seedance:Reference image={product-folded} person-reference="false"/>
+    <seedance:Reference image={product-recline} person-reference="false"/>
+    <seedance:Reference image={product-logo} person-reference="false"/>
+  </seedance:ReferenceVideo>
+</svml>

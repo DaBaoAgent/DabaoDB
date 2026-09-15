@@ -1,0 +1,10 @@
+{
+  "name": "aiyouhu-video-factory-webui",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "爱优护对标视频全自动生产工厂 — WebUI（零 npm 依赖，仅用 Node 内置模块）",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

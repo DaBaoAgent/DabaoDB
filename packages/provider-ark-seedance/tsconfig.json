@@ -13,12 +13,12 @@
     "outDir": "dist",
     "skipLibCheck": true,
     "types": ["node"],
-    "typeRoots": ["D:/@kaifa/hypit/node_modules/@types"],
+    "typeRoots": ["D:/@kaifa/DabaoDB/hypit/node_modules/@types"],
     "baseUrl": ".",
     "paths": {
-      "@hypit/hypit/endpoint-kit": ["D:/@kaifa/hypit/dist/public/endpoint-kit.d.ts"],
-      "@hypit/hypit/generation": ["D:/@kaifa/hypit/dist/public/generation.d.ts"],
-      "@hypit/hypit/runtime-kit": ["D:/@kaifa/hypit/dist/public/runtime-kit.d.ts"]
+      "@hypit/hypit/endpoint-kit": ["D:/@kaifa/DabaoDB/hypit/dist/public/endpoint-kit.d.ts"],
+      "@hypit/hypit/generation": ["D:/@kaifa/DabaoDB/hypit/dist/public/generation.d.ts"],
+      "@hypit/hypit/runtime-kit": ["D:/@kaifa/DabaoDB/hypit/dist/public/runtime-kit.d.ts"]
     }
   },
   "include": ["src/**/*.ts"]

@@ -21,7 +21,7 @@ DabaoDB/
 
 ```bash
 # 用仓库里的 CLI，指定项目工作区
-H="node D:/@kaifa/hypit/bin/hypit.mjs"; P="C:/Users/xxx13/hypit-projects/DabaoDB"
+H="node D:/@kaifa/DabaoDB/hypit/bin/hypit.mjs"; P="D:/@kaifa/DabaoDB/projects/DabaoDB"
 
 $H check   "$P/probe.svml"  --workspace "$P"                              # 校验源码（免费）
 $H doctor  --workspace "$P" --runtime "$P/hypit.runtime.json"             # 体检 Profile/凭据（免费）
@@ -34,8 +34,8 @@ $H get     <build-id> --output final.video --to out.mp4 --workspace "$P"  # 导�
 改完 Provider 源码必须重新编译，Hypit 读的是 `dist/`：
 
 ```bash
-node "D:/@kaifa/hypit/node_modules/typescript/bin/tsc" -p \
-  "C:/Users/xxx13/hypit-projects/DabaoDB/packages/provider-ark-seedance/tsconfig.json"
+node "D:/@kaifa/DabaoDB/hypit/node_modules/typescript/bin/tsc" -p \
+  "D:/@kaifa/DabaoDB/projects/DabaoDB/packages/provider-ark-seedance/tsconfig.json"
 ```
 
 ## 换模型（改 Profile 一处）

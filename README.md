@@ -69,8 +69,10 @@ Ark API Key 存放在 **Windows 凭据库**（`credential-store-os`），不落�
 | 2026-09-15 | `lighter218-15s.svml`（爱优护轻便侠218 真人讲解，参考同行视频结构，无字幕）| mini / 720p / 9:16 / 15s / 带口播 | `bld_20260915T131457419Z_4041134339`（Ark 任务 `cgt-20260915211501-f94xb`）| 324,900 tokens / 3分08秒 | ≈7.47 元 |
 | 2026-09-15 | `qbx-shot1..3.svml`（学安徽乐姐：3 镜 ×5s 旁白版，无出镜讲解员，无字幕，折叠动作限 0.5s）| mini / 720p / 9:16 / 3×5s → 拼 15.30s | `bld_…A93A100727 / …E68B17E28E / …44F9F267A8`（Ark `cgt-…vqvwr / …rx7wf / …fq7fr`）| 3×108,900 = 326,700 tokens | ≈7.47 元 |
 
-产物：`out/lighter218-15s-01.mp4`、`out/qingbianxia-15s-01.mp4`（3 段源片在 `out/shot/`），
-并同步到 `D:\BaiduSyncdisk\19 最近待办\AI视频\生成结果-轻便侠218\`。
+产物：`out/lighter218-15s-01.mp4`、`out/qingbianxia-15s-01.mp4`（3 段源片在 `out/shot/`）。
+
+**交付规则（老板 2026-09-15 定）：成片一律直接输出到**
+`D:\BaiduSyncdisk\19 最近待办\AI视频\同行高播放视频\`（不再建子目录）。
 
 经验：15s 纯口播+产品演示用 `ReferenceVideo` + 产品图（最多 9 张，图缩小到 ≤1024 宽再内联，
 否则原始 16MB 产品图的 base64 会过大）；`web-search` 属性只有 `TextVideo` 支持，

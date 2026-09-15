@@ -1,0 +1,11 @@
+{
+  "name": "@volcengine/provider-ark-seedance",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Project Provider: 火山方舟 (Volcengine Ark) Doubao-Seedance video generation",
+  "hypit": { "activation": "./dist/activation.js" },
+  "exports": { ".": "./dist/provider.js" },
+  "files": ["dist"],
+  "scripts": { "build": "tsc -p tsconfig.json" }
+}

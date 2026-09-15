@@ -1,0 +1,26 @@
+<?svml using="@hypit/markup@1"?>
+<svml>
+  <import as="text" from="@hypit/text@1"/>
+  <import as="asset" from="@hypit/media@1"/>
+  <import as="seedance" from="@hypit/seedance@1"/>
+
+  <asset:Image id="product-45" src="./assets/product-45.jpg"/>
+  <asset:Image id="product-side" src="./assets/product-side.jpg"/>
+  <asset:Image id="product-folded" src="./assets/product-folded.jpg"/>
+  <asset:Image id="product-recline" src="./assets/product-recline.jpg"/>
+
+  <text:Value id="shot2-prompt">真人实拍电商广告质感，9:16 竖屏。明亮商场外的一条无障碍缓坡，一台深灰色折叠电动轮椅（深灰车架、红色减震弹簧、黑色坐垫，外观严格保持参考图中的造型与配色）顺畅地向上行驶；紧接着切到近景特写：一双手把轮椅猛然一甩，在 0.5 秒内瞬间完成"展开即折叠"的动作（一晃即开，动作极快、干净利落，绝对不要展示铰链和车架结构的逐步变化），随后单手把整车轻松提起来；最后一个特写镜头：骑行者松开操纵杆，车轮立刻稳稳停住不动。
+
+旁白（画外音，普通话，语速偏快）：不用挤公交，不堵车；遇台阶，三秒折叠单手提着走，松手就停更安全。
+
+画面要求：全程不要出现任何字幕、文字、字母、水印、logo、贴纸；人物不对着镜头开口说话；折叠动作必须在 0.5 秒内完成，一晃即开，不要慢动作演示折叠过程。</text:Value>
+
+  <seedance:ReferenceVideo id="final" model="mini" prompt={shot2-prompt}
+    duration="5" resolution="720p" aspect-ratio="9:16"
+    generate-audio="true">
+    <seedance:Reference image={product-45} person-reference="false"/>
+    <seedance:Reference image={product-side} person-reference="false"/>
+    <seedance:Reference image={product-folded} person-reference="false"/>
+    <seedance:Reference image={product-recline} person-reference="false"/>
+  </seedance:ReferenceVideo>
+</svml>

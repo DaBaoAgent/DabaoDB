@@ -1,0 +1,30 @@
+<?svml using="@hypit/markup@1"?>
+<svml>
+  <import as="text" from="@hypit/text@1"/>
+  <import as="asset" from="@hypit/media@1"/>
+  <import as="seedance" from="@hypit/seedance@1"/>
+
+  <asset:Image id="product-45" src="./assets/product-45.jpg"/>
+  <asset:Image id="product-side" src="./assets/product-side.jpg"/>
+  <asset:Image id="product-folded" src="./assets/product-folded.jpg"/>
+  <asset:Image id="product-recline" src="./assets/product-recline.jpg"/>
+
+  <text:Value id="ad-prompt">真人实拍电商广告质感，9:16 竖屏。主角是一位 40 岁左右的中国女性讲解员，白色上衣、黑色长裤，面容亲切自然，全程面对镜头用普通话口播，站在明亮现代的商场中庭（浅色地面、整洁背景、柔和顶光）。
+
+0-4 秒：中景固定机位，她站在爱优护轻便侠218电动轮椅右侧，微笑看向镜头说话，右手自然抬起指向轮椅（轮椅为深灰色车架配红色减震弹簧，外观严格保持参考图中的造型与配色）。
+4-9 秒：镜头缓慢推近，她单手把轮椅甩开、利落完成 3 秒折叠展开演示，随后单手把整车提起来展示轻巧，面露惊喜。
+9-15 秒：她坐上车、松开操纵杆演示“松手即停”，车轮稳稳停住，她回头看向镜头点头微笑。
+
+口播台词（普通话，语速自然亲切）：家里老人出门不方便？爱优护轻便侠218，单手一甩就展开，3 秒折叠，整机只有 8.9 公斤，一只手就能提起来；松手就停，上下坡都稳。带爸妈出门，再也不用求人。
+
+画面要求：浅灰与暖白主色调，柔和均匀光线，产品细节清晰锐利，真人口型与台词同步，同期声清晰。画面必须绝对干净，不要出现任何字幕、文字、字母、水印、logo、贴纸或 UI 元素。</text:Value>
+
+  <seedance:ReferenceVideo id="final" model="mini" prompt={ad-prompt}
+    duration="15" resolution="720p" aspect-ratio="9:16"
+    generate-audio="true">
+    <seedance:Reference image={product-45} person-reference="false"/>
+    <seedance:Reference image={product-side} person-reference="false"/>
+    <seedance:Reference image={product-folded} person-reference="false"/>
+    <seedance:Reference image={product-recline} person-reference="false"/>
+  </seedance:ReferenceVideo>
+</svml>

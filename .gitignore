@@ -1,0 +1,17 @@
+# 依赖
+node_modules/
+
+# Hypit 运行时状态（Worker/程序/构建缓存，体积大且是机器本地状态）
+.hypit/
+
+# 对标素材：他人视频副本 + 拆解产物（含他人广告文案，不公开）
+refs/
+
+# 生成产物（视频体积大，不入库；需要时单独交付）
+out/
+
+# 系统/编辑器
+Thumbs.db
+desktop.ini
+.DS_Store
+*.log

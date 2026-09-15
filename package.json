@@ -1,0 +1,10 @@
+{
+  "name": "DabaoDB",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Hypit 视频项目（火山方舟 Seedance 接入验证）",
+  "dependencies": {
+    "@volcengine/provider-ark-seedance": "file:./packages/provider-ark-seedance"
+  }
+}

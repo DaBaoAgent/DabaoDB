@@ -1,0 +1,26 @@
+<?svml using="@hypit/markup@1"?>
+<svml>
+  <import as="text" from="@hypit/text@1"/>
+  <import as="asset" from="@hypit/media@1"/>
+  <import as="seedance" from="@hypit/seedance@1"/>
+
+  <asset:Image id="product-45" src="./assets/product-45.jpg"/>
+  <asset:Image id="product-side" src="./assets/product-side.jpg"/>
+  <asset:Image id="product-folded" src="./assets/product-folded.jpg"/>
+  <asset:Image id="product-recline" src="./assets/product-recline.jpg"/>
+
+  <text:Value id="shot3-prompt">真人实拍电商广告质感，9:16 竖屏。下午的公园步道，一位 25-30 岁的年轻女性骑着一台深灰色折叠电动轮椅（深灰车架、红色减震弹簧、黑色坐垫，外观严格保持参考图中的造型与配色），与一位 70 岁左右的白发老人（乘坐另一台同款电动轮椅）并排缓慢向前行驶；两人转头相视微笑，镜头在侧面跟拍后缓缓拉远，柔和逆光，画面温暖治愈。
+
+旁白（画外音，普通话，语速平稳温暖）：更轻便、更安全、更舒适——爱优护轻便侠，带爸妈出门不用求人。
+
+画面要求：人物不对着镜头说台词，旁白是画外音；画面干净，不要出现任何字幕、文字、字母、水印、logo、贴纸或 UI 元素。</text:Value>
+
+  <seedance:ReferenceVideo id="final" model="mini" prompt={shot3-prompt}
+    duration="5" resolution="720p" aspect-ratio="9:16"
+    generate-audio="true">
+    <seedance:Reference image={product-45} person-reference="false"/>
+    <seedance:Reference image={product-side} person-reference="false"/>
+    <seedance:Reference image={product-folded} person-reference="false"/>
+    <seedance:Reference image={product-recline} person-reference="false"/>
+  </seedance:ReferenceVideo>
+</svml>

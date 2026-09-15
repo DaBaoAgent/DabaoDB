@@ -1,0 +1,23 @@
+{
+  "format": "hypit.runtime-local@1",
+  "dataRoot": ".hypit/runtimes/local",
+  "credentials": {
+    "os": { "use": "@hypit/credential-store-os" }
+  },
+  "endpoints": {
+    "ark.mini": {
+      "use": "@volcengine/provider-ark-seedance",
+      "config": {
+        "baseUrl": "https://ark.cn-beijing.volces.com/api/v3",
+        "capability": "seedance-2-mini",
+        "watermark": false,
+        "apiKey": { "store": "os", "key": "ark.mini" }
+      }
+    },
+    "media.local": { "use": "@hypit/provider-media-local" },
+    "hyperframes.local": { "use": "@hypit/provider-hyperframes-local" }
+  },
+  "bindings": {
+    "@hypit/seedance@1#seedance-2-mini": "ark.mini"
+  }
+}

@@ -1,0 +1,11 @@
+<?svml using="@hypit/markup@1"?>
+<svml>
+  <import as="text" from="@hypit/text@1"/>
+  <import as="seedance" from="@hypit/seedance@1"/>
+
+  <text:Value id="probe-prompt">A single white porcelain teacup on a dark walnut table, morning light through a window, slow dolly-in, shallow depth of field, calm and quiet mood, no text, no people.</text:Value>
+
+  <seedance:TextVideo id="final" model="mini" prompt={probe-prompt}
+    duration="5" resolution="720p" aspect-ratio="16:9"
+    generate-audio="false" web-search="false"/>
+</svml>

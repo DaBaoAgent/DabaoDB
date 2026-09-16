@@ -494,6 +494,11 @@ details.fold .body.md { font-family: var(--mono); font-size: 12px; }
 /* ── 历史 ─────────────────────────────────────────────────── */
 .history { display: grid; gap: 13px; }
 .history-note { margin: -3px 0 15px; color: var(--ink-3); font-size: 12px; }
+.auto-mode { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; padding: 12px; border: 1px solid rgba(120,150,255,.32); border-radius: var(--r-sm); background: rgba(76,141,255,.07); cursor: pointer; }
+.auto-mode input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--blue); }
+.auto-mode span { display: grid; gap: 3px; }
+.auto-mode b { color: var(--ink); font-size: 13px; }
+.auto-mode small { color: var(--ink-3); line-height: 1.5; }
 .hist-card { display: grid; grid-template-columns: 150px 1fr auto; gap: 16px; align-items: center; }
 @media (max-width: 860px) { .hist-card { grid-template-columns: 1fr; } }
 .hist-thumb {

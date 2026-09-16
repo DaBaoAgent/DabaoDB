@@ -16,7 +16,7 @@ const TOKENS_5S = { '480p': 50638, '720p': 108900, '1080p': 217800 };
 const state = {
   cfg: null,
   ref: null,            // {path, name, sizeText}
-  refs: [],             // 最多 3 条；每条独立拆解、独立出片
+  refs: [],             // 普通 3 条；全自动批量最多 10 条
   refUrls: [],          // 抖音链接：没有本地对标视频时自动提取
   products: [],         // [{path, url, name}]
   logo: null,           // {path, url, name}
@@ -41,7 +41,7 @@ function save() {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify({
       learn: state.learn, spec: state.spec,
-      productName: $('productName').value, ref: state.ref, refs: state.refs, refUrls: readRefUrls(), products: state.products, logo: state.logo,
+      productName: $('productName').value, ref: state.ref, refs: state.refs, refUrls: readRefUrls(), automatic: $('autoMode').checked, products: state.products, logo: state.logo,
     }));
   } catch { /* 忽略 */ }
 }
@@ -207,8 +207,9 @@ function setBar(bar, pct) {
 }
 
 async function handleRefFiles(files) {
-  const room = 3 - state.refs.length;
-  if (room <= 0) return toast('对标视频最多 3 条', 'error');
+  const max = $('autoMode').checked ? 10 : 3;
+  const room = max - state.refs.length;
+  if (room <= 0) return toast(`当前模式对标视频最多 ${max} 条`, 'error');
   for (const f of files.filter((x) => x.type.startsWith('video/')).slice(0, room)) {
     try {
       const r = await uploadFile(f, 'ref', (p) => setBar($('refBar'), p));
@@ -231,7 +232,23 @@ function renderRefs() {
 
 function readRefUrls() {
   const input = $('douyinLinks');
-  return input ? input.value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).slice(0, 3) : [];
+  const max = $('autoMode').checked ? 10 : 3;
+  return input ? input.value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).slice(0, max) : [];
+}
+
+function syncAutomaticMode() {
+  const automatic = $('autoMode').checked;
+  const max = automatic ? 10 : 3;
+  $('refLimitHint').textContent = automatic ? '全自动模式最多 10 条，逐条独立成片' : '普通模式最多 3 条，各自独立生成';
+  $('refDropText').textContent = automatic ? '点击或拖入 1–10 条对标视频' : '点击或拖入 1–3 条对标视频';
+  $('linkLimitHint').textContent = `每行一个，1–${max} 条`;
+  $('btnGenerate').firstChild.textContent = automatic ? '一键智能批量生成\n            ' : '免费拆解并生成方案\n            ';
+  $('btnSub').textContent = automatic ? '拆解 → 方案 → 自愈 → 成片，全程自动完成' : '先分析对标视频，确认后才会产生出片费用';
+  if (state.refs.length > max) {
+    state.refs = state.refs.slice(0, max); state.ref = state.refs[0] || null; renderRefs();
+    toast(`已按普通模式保留前 ${max} 条对标视频`, 'error');
+  }
+  save();
 }
 
 async function handleProdFiles(files) {
@@ -555,7 +572,7 @@ function connectSSE() {
     let msg = null;
     try { msg = JSON.parse(ev.data); } catch { return; }
     if (!msg || !msg.type) return;
-    if (state.batchId && msg.type !== 'batch-ready') {
+    if (state.batchId && msg.type !== 'batch-ready' && msg.type !== 'batch-done') {
       if (msg.type === 'job-error') toast('有一条对标视频分析失败，其余方案会继续完成', 'error');
       if (msg.type === 'job-queued' || msg.type === 'job-done') refreshHistory();
       return;
@@ -621,6 +638,14 @@ function connectSSE() {
         openBatchReview(msg.payload);
         refreshHistory();
         break;
+      case 'batch-done':
+        setProgress(100, '批量任务已完成', false);
+        $('btnGenerate').disabled = false; $('btnGenerate').classList.remove('running');
+        $('btnSub').textContent = $('autoMode').checked ? '拆解 → 方案 → 自愈 → 成片，全程自动完成' : '先分析对标视频，确认后才会产生出片费用';
+        $('btnCancel').classList.add('hidden');
+        toast('批量任务已结束，可在历史任务中查看每条成片', 'ok');
+        refreshHistory();
+        break;
       case 'job-error':
         applyJobUpdate(msg.payload.summary);
         showError(msg.payload.error);
@@ -649,8 +674,10 @@ async function startJob() {
   learn.realLogo = !!state.logo;
   const rawRefUrls = $('douyinLinks').value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const refUrls = readRefUrls();
+  const automatic = $('autoMode').checked;
+  const max = automatic ? 10 : 3;
   if (!state.refs.length && !refUrls.length) return toast('先上传对标视频，或填写抖音视频链接', 'error');
-  if (rawRefUrls.length > 3) return toast('抖音链接最多填写 3 条', 'error');
+  if (rawRefUrls.length > max) return toast(`当前模式抖音链接最多填写 ${max} 条`, 'error');
   if (!$('productName').value.trim()) return toast('先填产品名称', 'error');
   if (!state.products.length) return toast('至少上传 1 张产品参考图', 'error');
   btn.disabled = true;
@@ -670,6 +697,7 @@ async function startJob() {
         refVideo: state.refs[0]?.path || '',
         refVideos: state.refs.map((ref) => ref.path),
         refUrls: state.refs.length ? [] : refUrls,
+        automatic,
         productImages: state.products.map((p) => p.path),
         logo: state.logo?.path || '',
       }),
@@ -687,8 +715,8 @@ async function startJob() {
     setProgress(0, '排队中', true);
     renderSteps(0, { prepare: 'running' });
     const sourceCount = state.refs.length || refUrls.length;
-    $('btnSub').textContent = state.batchId ? `正在独立拆解 ${sourceCount} 条对标视频…` : '免费拆解中：完成后将自动打开确认页';
-    toast(state.batchId ? '批量免费分析已启动，全部完成后统一确认' : '免费分析已启动，确认前不会产生视频生成费用');
+    $('btnSub').textContent = automatic ? `正在全自动生产 ${sourceCount} 条成片…` : (state.batchId ? `正在独立拆解 ${sourceCount} 条对标视频…` : '免费拆解中：完成后将自动打开确认页');
+    toast(automatic ? '全自动批量任务已启动：每条将独立完成拆解、生成与导出' : (state.batchId ? '批量免费分析已启动，全部完成后统一确认' : '免费分析已启动，确认前不会产生视频生成费用'));
     save();
     refreshHistory();
   } catch (e) {
@@ -746,7 +774,7 @@ async function refreshHistory() {
         const estimate = members.filter((item) => item.status === 'awaiting_confirmation').reduce((sum, item) => sum + Number(item.estimate?.yuan || 0), 0);
         const statuses = members.map((item) => `<span class="status-chip ${esc(item.status)}">${esc(item.status)}</span>`).join('');
         return `<div class="card batch-history-card">
-          <div class="batch-history-top"><div><span class="batch-kicker">批量对标</span><b>${esc(j.productName || '未命名产品')} · ${members.length} 条独立方案</b><span class="small">${fmtTime(j.createdAt)}</span></div><div class="batch-statuses">${statuses}</div></div>
+          <div class="batch-history-top"><div><span class="batch-kicker">${j.automatic ? '全自动批量生产' : '批量对标'}</span><b>${esc(j.productName || '未命名产品')} · ${members.length} 条独立方案</b><span class="small">${fmtTime(j.createdAt)}</span></div><div class="batch-statuses">${statuses}</div></div>
           <div class="batch-history-meta"><span>待确认 <b>${waiting}</b></span><span>生成中 <b>${running}</b></span><span>已交付 <b>${complete}</b></span><span>待确认预计 <b>${estimate ? `¥${estimate.toFixed(2)}` : '—'}</b></span></div>
           <div class="hist-actions">${waiting ? `<button class="btn-ghost on" data-act="batch-review" data-batch="${esc(j.batchId)}">管理批量方案</button>` : ''}</div>
         </div>`;
@@ -765,6 +793,7 @@ async function refreshHistory() {
           <div class="row" style="margin-bottom:9px;gap:10px;flex-wrap:wrap">
             <b style="font-size:15px">${esc(j.productName || '未命名')}</b>
             <span class="status-chip ${esc(j.status)}">${esc(j.status)}</span>
+            ${j.cacheHit ? '<span class="meta-pill">已复用拆解报告</span>' : ''}
             <span class="small">${fmtTime(j.createdAt)}</span>
           </div>
           <div class="hist-meta">
@@ -871,12 +900,15 @@ async function init() {
   $('audioSwitch').addEventListener('click', () => { $('audioSwitch').classList.toggle('on'); updateSpecPills(); save(); });
 
   // 恢复上次的素材
-  state.refs = (saved?.refs?.length ? saved.refs : (saved?.ref?.path ? [saved.ref] : [])).slice(0, 3);
+  $('autoMode').checked = !!saved?.automatic;
+  state.refs = (saved?.refs?.length ? saved.refs : (saved?.ref?.path ? [saved.ref] : [])).slice(0, $('autoMode').checked ? 10 : 3);
   state.ref = state.refs[0] || null;
   if (state.refs.length) renderRefs();
-  state.refUrls = Array.isArray(saved?.refUrls) ? saved.refUrls.slice(0, 3) : [];
+  state.refUrls = Array.isArray(saved?.refUrls) ? saved.refUrls.slice(0, $('autoMode').checked ? 10 : 3) : [];
   $('douyinLinks').value = state.refUrls.join('\n');
   $('douyinLinks').addEventListener('input', save);
+  $('autoMode').addEventListener('change', syncAutomaticMode);
+  syncAutomaticMode();
   if (saved?.products?.length) { state.products = saved.products; renderProducts(); }
   if (saved?.logo?.path) {
     state.logo = saved.logo;

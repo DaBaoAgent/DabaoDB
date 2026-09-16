@@ -9,6 +9,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
 const { runJob, STAGES, UI_STEPS, MODEL_TABLE } = require('./lib/pipeline');
 const { ensureDir, readHermesEnv, exists, safeName, fmtSize, nowIso } = require('./lib/util');
@@ -57,11 +58,13 @@ const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
 const JOBS_DIR = path.join(DATA_DIR, 'jobs');
 const JOBS_INDEX = path.join(DATA_DIR, 'jobs.json');
 const BATCHES_INDEX = path.join(DATA_DIR, 'batches.json');
+const ANALYSIS_CACHE_INDEX = path.join(DATA_DIR, 'analysis-cache.json');
 
 // ── 任务状态 ──────────────────────────────────────────────────
 /** @type {Map<string, any>} */
 const jobs = new Map();
 const batches = new Map();
+const analysisCache = new Map();
 const queue = [];
 let running = null;
 let currentChild = null;
@@ -72,6 +75,34 @@ function validDouyinUrl(value) {
     const u = new URL(String(value || '').trim());
     return /^https?:$/.test(u.protocol) && /(^|\.)(douyin|iesdouyin)\.com$/i.test(u.hostname);
   } catch { return false; }
+}
+
+function hashFile(file) {
+  return new Promise((resolve, reject) => {
+    const h = crypto.createHash('sha256');
+    const input = fs.createReadStream(file);
+    input.on('data', (chunk) => h.update(chunk));
+    input.on('error', reject);
+    input.on('end', () => resolve(h.digest('hex')));
+  });
+}
+
+async function sourceKeyFor(ref) {
+  if (ref.refVideo) return `file:${await hashFile(ref.refVideo)}`;
+  const u = new URL(ref.refUrl);
+  // 同一个链接不因复制时带上的追踪参数而重复拆解。
+  [...u.searchParams.keys()].filter((k) => /^utm_|^share_|^previous_page$/i.test(k)).forEach((k) => u.searchParams.delete(k));
+  u.hash = '';
+  return `url:${crypto.createHash('sha256').update(u.toString()).digest('hex')}`;
+}
+
+function reusableAnalysis(job) {
+  return !!(job && job.report && job.stages?.prepare === 'done' && job.stages?.breakdown === 'done'
+    && job.stages?.analyze === 'done');
+}
+
+function cacheAnalysis(job) {
+  if (job.sourceKey && reusableAnalysis(job)) analysisCache.set(job.sourceKey, job.id);
 }
 
 function broadcast(type, payload, jobId) {
@@ -89,6 +120,9 @@ function jobSummary(job) {
     finishedAt: job.finishedAt,
     status: job.status,
     batchId: job.batchId || null,
+    automatic: !!job.automatic,
+    cacheHit: !!job.cacheHit,
+    sourceKey: job.sourceKey,
     productName: job.params?.productName,
     spec: job.params?.spec,
     learn: job.params?.learn,
@@ -121,6 +155,7 @@ function batchSummary(batch) {
     createdAt: batch.createdAt,
     productName: batch.productName,
     status: batch.status,
+    automatic: !!batch.automatic,
     jobs: batch.jobIds.map((id) => jobSummary(jobs.get(id))).filter(Boolean),
   };
 }
@@ -136,12 +171,18 @@ function settleBatch(job) {
     batch.status = 'awaiting_confirmation';
     broadcast('batch-ready', batchSummary(batch), batch.id);
   }
+  const terminal = members.length && members.every((item) => ['done', 'failed', 'cancelled'].includes(item.status));
+  if (terminal) {
+    batch.status = members.some((item) => item.status === 'done') ? 'done' : 'failed';
+    broadcast('batch-done', batchSummary(batch), batch.id);
+  }
 }
 
 async function persistIndex() {
   const list = [...jobs.values()].map(jobSummary).slice(-200);
   await fsp.writeFile(JOBS_INDEX, JSON.stringify(list, null, 2), 'utf8');
   await fsp.writeFile(BATCHES_INDEX, JSON.stringify([...batches.values()].map(batchSummary).slice(-100), null, 2), 'utf8');
+  await fsp.writeFile(ANALYSIS_CACHE_INDEX, JSON.stringify(Object.fromEntries(analysisCache), null, 2), 'utf8');
   for (const job of jobs.values()) {
     try {
       await fsp.writeFile(path.join(JOBS_DIR, job.id, 'job.json'),
@@ -171,6 +212,7 @@ async function startNext() {
       emit,
       registerChild: (child) => { currentChild = child; },
     });
+    cacheAnalysis(job);
     if (job.awaitingConfirmation) {
       job.status = 'awaiting_confirmation';
       job.finishedAt = new Date().toISOString();
@@ -367,6 +409,8 @@ const server = http.createServer(async (req, res) => {
     // 启动任务
     if (p === '/api/start' && req.method === 'POST') {
       const body = JSON.parse(await readBody(req));
+      const automatic = !!body.automatic;
+      const maxSources = automatic ? 10 : 3;
       const params = {
         productName: String(body.productName || '').trim(),
         learn: {
@@ -390,9 +434,9 @@ const server = http.createServer(async (req, res) => {
         logo: body.logo ? String(body.logo) : '',
       };
       const refVideos = (Array.isArray(body.refVideos) ? body.refVideos : [params.refVideo])
-        .map(String).filter(Boolean).slice(0, 3);
+        .map(String).filter(Boolean).slice(0, maxSources);
       const refUrls = (Array.isArray(body.refUrls) ? body.refUrls : [])
-        .map((x) => String(x || '').trim()).filter(Boolean).slice(0, 3);
+        .map((x) => String(x || '').trim()).filter(Boolean).slice(0, maxSources);
       // 已上传的视频优先；链接仅在没有本地视频时作为自动下载来源。
       const refs = refVideos.length
         ? refVideos.map((refVideo) => ({ refVideo, refUrl: '' }))
@@ -406,15 +450,22 @@ const server = http.createServer(async (req, res) => {
 
       const batch = refs.length > 1 ? {
         id: `batch_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
-        createdAt: nowIso(), productName: params.productName, status: 'analyzing', jobIds: [], reviewReady: false,
+        createdAt: nowIso(), productName: params.productName, status: automatic ? 'generating' : 'analyzing', jobIds: [], reviewReady: false, automatic,
       } : null;
       if (batch) batches.set(batch.id, batch);
       const created = [];
       for (const ref of refs) {
+        const sourceKey = await sourceKeyFor(ref);
+        const cached = jobs.get(analysisCache.get(sourceKey));
+        const canReuse = reusableAnalysis(cached);
         const job = {
           id: newJobId(), createdAt: nowIso(), status: 'queued',
           params: { ...params, refVideo: ref.refVideo, refUrl: ref.refUrl }, logs: [], shots: [], stages: {}, progress: 0, stageFraction: 0,
-          stageName: '排队中', stage: 'queued', stopAfterAnalysis: true, batchId: batch?.id || null,
+          stageName: canReuse ? '复用已保存的拆解方案' : '排队中', stopAfterAnalysis: !automatic, batchId: batch?.id || null,
+          automatic, sourceKey, cacheHit: canReuse,
+          resumeFrom: canReuse ? cached.id : undefined,
+          // 对标拆解只与源视频有关；分镜方案仍按这次的产品、卖点和图片重新生成。
+          inheritStages: canReuse ? ['prepare', 'breakdown', 'analyze'] : [],
           configSnapshot: {
             model: params.spec.model, resolution: params.spec.resolution,
             aspect: params.spec.aspect, shots: params.spec.shots, shotDuration: params.spec.shotDuration,
@@ -564,13 +615,21 @@ const server = http.createServer(async (req, res) => {
       const src = jobs.get(m[1]);
       if (!src) return sendJson(res, 404, { error: 'job not found' });
       if (!src.params || (!src.params.refVideo && !src.params.refUrl)) return sendJson(res, 400, { error: '上一个任务的参数已丢失（进程重启过旧记录），请直接重新提交' });
+      const cached = jobs.get(analysisCache.get(src.sourceKey)) || (reusableAnalysis(src) ? src : null);
+      const canReuse = reusableAnalysis(cached);
       const job = {
         id: newJobId(),
         createdAt: nowIso(),
         status: 'queued',
         params: JSON.parse(JSON.stringify(src.params)),
         logs: [], shots: [], stages: {}, progress: 0, stageFraction: 0,
-        stageName: '排队中', stage: 'queued',
+        stageName: canReuse ? '复用已保存的拆解方案' : '排队中', stage: 'queued',
+        stopAfterAnalysis: !src.automatic,
+        automatic: !!src.automatic,
+        sourceKey: src.sourceKey,
+        cacheHit: canReuse,
+        resumeFrom: canReuse ? cached.id : undefined,
+        inheritStages: canReuse ? ['prepare', 'breakdown', 'analyze'] : [],
       };
       jobs.set(job.id, job);
       await ensureDir(path.join(JOBS_DIR, job.id));
@@ -654,9 +713,26 @@ const server = http.createServer(async (req, res) => {
             try { params = JSON.parse(await fsp.readFile(jf, 'utf8')).params || null; } catch { /* 忽略 */ }
           }
         }
-        jobs.set(s.id, { ...s, logs: [], params: params || {} });
+        const job = { ...s, logs: [], params: params || {} };
+        // 报告正文不放在任务列表响应里，但缓存索引恢复时需要它作为完整性标记。
+        const reportFile = path.join(JOBS_DIR, s.id, '拆解报告.md');
+        if (exists(reportFile)) {
+          try { job.report = await fsp.readFile(reportFile, 'utf8'); } catch { /* 忽略 */ }
+        }
+        jobs.set(s.id, job);
       }
     }
+  } catch { /* 忽略 */ }
+
+  // 已完成的免费拆解按视频内容/链接建立索引；服务重启后仍可复用。
+  try {
+    if (exists(ANALYSIS_CACHE_INDEX)) {
+      const saved = JSON.parse(await fsp.readFile(ANALYSIS_CACHE_INDEX, 'utf8'));
+      for (const [key, id] of Object.entries(saved || {})) {
+        if (reusableAnalysis(jobs.get(id))) analysisCache.set(key, id);
+      }
+    }
+    for (const job of jobs.values()) cacheAnalysis(job);
   } catch { /* 忽略 */ }
 
   // 兼容旧索引：根据成员任务自动补建批量任务记录。
@@ -686,7 +762,7 @@ const server = http.createServer(async (req, res) => {
         batches.set(batch.id, {
           id: batch.id, createdAt: batch.createdAt, productName: batch.productName,
           status: batch.status, jobIds: batch.jobs.map((job) => job.id).filter(Boolean),
-          reviewReady: batch.status === 'awaiting_confirmation' || batch.status === 'generating',
+          reviewReady: batch.status === 'awaiting_confirmation' || batch.status === 'generating', automatic: !!batch.automatic,
         });
       }
     }

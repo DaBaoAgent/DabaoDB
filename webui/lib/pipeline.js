@@ -318,6 +318,7 @@ async function runJob({ job, config, emit, registerChild }) {
       svrun: path.join(jobDir, f.replace(/\.svml$/, '.svrun')),
     }));
     if (exists(path.join(jobDir, '拆解报告.md'))) job.report = await fsp.readFile(path.join(jobDir, '拆解报告.md'), 'utf8');
+    if (exists(path.join(jobDir, '分镜参考.json'))) job.storyboardRef = JSON.parse(await fsp.readFile(path.join(jobDir, '分镜参考.json'), 'utf8'));
     if (exists(path.join(reportDir, 'transcript.txt'))) job.transcript = await fsp.readFile(path.join(reportDir, 'transcript.txt'), 'utf8');
     if (job.confirmedReview?.shots?.length) {
       job.shotsPlan = applyReviewDirectives(job.confirmedReview.shots, job.confirmedReview);
@@ -496,17 +497,18 @@ ${(job.transcript || '').slice(0, 12000)}
     log(`分镜 ${job.shotsPlan.length} 镜，提示词已就绪`, 'ok');
   });
 
-  // 分析任务到这里暂停：这是付费调用前唯一的人工确认点。
-  // 后续确认任务会以 resumeFrom 复用前四个免费阶段的产物。
-  if (job.stopAfterAnalysis) {
-    const ref = job.storyboardRef || {};
-    job.estimate = estimateCost({
-      model: job.params.spec.model,
-      resolution: job.params.spec.resolution,
-      shots: job.shotsPlan.length,
-      shotDuration: Number(job.params.spec.shotDuration) || 15,
-    });
-    job.review = {
+  // 报告、分镜与可编辑方案总是在免费阶段完成后保存；全自动模式仅跳过人工确认。
+  const ref = job.storyboardRef || {};
+  job.estimate = estimateCost({
+    model: job.params.spec.model,
+    resolution: job.params.spec.resolution,
+    shots: job.shotsPlan.length,
+    shotDuration: Number(job.params.spec.shotDuration) || 15,
+  });
+  job.review = job.cachedReview ? {
+    ...job.cachedReview,
+    shots: job.shotsPlan,
+  } : {
       videoType: ref.视频类型 || ref.视频类型判断 || '按对标视频结构生成',
       platformStyle: ref.平台风格 || '自动转换为 9:16 竖屏短视频风格',
       structure: ref.可复刻要点 || [],
@@ -516,7 +518,11 @@ ${(job.transcript || '').slice(0, 12000)}
       title: ref.发布标题 || `${job.params.productName}，看看它怎么解决日常出行`,
       tags: Array.isArray(ref.发布标签) ? ref.发布标签 : [],
       shots: job.shotsPlan,
-    };
+  };
+
+  // 分析任务到这里暂停：这是付费调用前唯一的人工确认点。
+  // 后续确认任务会以 resumeFrom 复用前四个免费阶段的产物。
+  if (job.stopAfterAnalysis) {
     job.stage = 'confirmation';
     job.stageName = '等待确认（尚未产生视频生成费用）';
     job.awaitingConfirmation = true;

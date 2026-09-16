@@ -32,19 +32,20 @@
       <div class="col">
 
         <div class="card">
-          <h2 class="card-title"><span class="dot"></span>① 上传对标视频<span class="hint">最多 3 条，各自独立生成</span></h2>
+          <h2 class="card-title"><span class="dot"></span>① 上传对标视频<span class="hint" id="refLimitHint">普通模式最多 3 条，各自独立生成</span></h2>
           <div class="drop" id="dropRef">
             <div class="drop-icon">🎬</div>
-            <div class="drop-main">点击或拖入 1–3 条对标视频</div>
+            <div class="drop-main" id="refDropText">点击或拖入 1–3 条对标视频</div>
             <div class="drop-sub">mp4 / mov，建议每条 ≤300MB、30~90 秒</div>
             <div class="fileline" id="refFile"></div>
           </div>
           <div class="upload-bar" id="refBar"><i></i></div>
           <input type="file" id="refInput" accept="video/*" multiple class="hidden">
           <div class="link-source">
-            <label for="douyinLinks">或填写抖音视频链接 <span>每行一个，1–3 条</span></label>
+            <label for="douyinLinks">或填写抖音视频链接 <span id="linkLimitHint">每行一个，1–3 条</span></label>
             <textarea class="input" id="douyinLinks" rows="3" placeholder="https://v.douyin.com/……&#10;没有上传对标视频时，系统会自动提取链接视频并免费拆解"></textarea>
           </div>
+          <label class="auto-mode" for="autoMode"><input type="checkbox" id="autoMode"><span><b>全自动批量模式</b><small>最多 10 条视频或抖音链接；自动拆解、复用已保存报告、直接生成成片，不再逐条确认</small></span></label>
         </div>
 
         <div class="card">
